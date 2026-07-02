@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bhagya & Sujith — 10.04.2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Poppins:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0B4F4A;
+    --teal-deep:#083C38;
+    --cream:#FFF8EC;
+    --mango:#FF7A33;
+    --pink:#FF5C8A;
+    --palm:#2E7D5B;
+    --ink:#12241F;
+    --ring: rgba(255,248,236,0.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Poppins', sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    overflow-x:hidden;
+  }
+  a{color:inherit;}
+  :focus-visible{outline:3px solid var(--mango); outline-offset:3px; border-radius:4px;}
+
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    font-size:0.72rem;
+    opacity:0.75;
+  }
+  h1,h2,h3{font-family:'Baloo 2', sans-serif; line-height:1.05;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    background:radial-gradient(circle at 50% 40%, var(--teal) 0%, var(--teal-deep) 70%);
+    color:var(--cream);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
+    padding:2rem 1.25rem;
+  }
+  #rippleCanvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    cursor:pointer;
+  }
+  .hero-content{
+    position:relative;
+    z-index:2;
+    pointer-events:none;
+  }
+  .hero-content .eyebrow{color:var(--mango); margin-bottom:0.9rem;}
+  .names{
+    font-size:clamp(2.6rem, 10vw, 6.2rem);
+    font-weight:800;
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.3em;
+    justify-content:center;
+    text-shadow:0 2px 24px rgba(0,0,0,0.25);
+  }
+  .names .amp{color:var(--mango); font-weight:600;}
+  .hero-sub{
+    margin-top:1.1rem;
+    font-size:clamp(0.95rem, 2.4vw, 1.15rem);
+    opacity:0.88;
+    font-weight:300;
+  }
+  .tap-hint{
+    margin-top:2.6rem;
+    font-family:'Space Mono', monospace;
+    font-size:0.78rem;
+    letter-spacing:0.08em;
+    color:var(--cream);
+    opacity:0.65;
+    animation:pulseHint 2.4s ease-in-out infinite;
+  }
+  @keyframes pulseHint{0%,100%{opacity:0.35;} 50%{opacity:0.85;}}
+  .scrolldown{
+    position:absolute; bottom:1.6rem; left:50%; transform:translateX(-50%);
+    z-index:2; font-family:'Space Mono',monospace; font-size:0.7rem;
+    letter-spacing:0.15em; color:var(--cream); opacity:0.6;
+  }
+
+  /* ---------- COUNTDOWN STRIP ---------- */
+  .countdown{
+    background:var(--mango);
+    color:var(--teal-deep);
+    display:flex;
+    justify-content:center;
+    gap:clamp(1rem,4vw,3rem);
+    padding:1.4rem 1rem;
+    flex-wrap:wrap;
+  }
+  .countdown .unit{text-align:center;}
+  .countdown .num{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:clamp(1.6rem,4vw,2.4rem);
+    display:block;
+  }
+  .countdown .lab{
+    font-family:'Space Mono', monospace;
+    font-size:0.62rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    opacity:0.75;
+  }
+
+  /* ---------- SECTION SHELL ---------- */
+  section.block{
+    padding:5.5rem 1.5rem;
+    max-width:920px;
+    margin:0 auto;
+  }
+  .block h2{
+    font-size:clamp(1.9rem,5vw,2.8rem);
+    color:var(--teal);
+    margin-bottom:0.4rem;
+  }
+  .block .eyebrow{color:var(--pink); margin-bottom:0.6rem; display:block;}
+  .lead{font-size:1.02rem; opacity:0.8; max-width:640px; margin-top:0.6rem;}
+
+  /* ---------- STORY ---------- */
+  .story-chapter{
+    display:grid;
+    grid-template-columns:80px 1fr;
+    gap:1.5rem;
+    padding:2.6rem 0;
+    border-top:1px solid rgba(11,79,74,0.12);
+    opacity:0;
+    transform:translateY(24px);
+    transition:opacity 0.7s ease, transform 0.7s ease;
+  }
+  .story-chapter.visible{opacity:1; transform:translateY(0);}
+  .story-chapter .mark{
+    width:56px; height:56px; border-radius:50%;
+    background:var(--teal);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; color:var(--cream); font-weight:700; font-size:1.4rem;
+  }
+  .story-chapter:nth-child(even) .mark{background:var(--pink);}
+  .story-chapter:nth-child(odd) .mark{background:var(--palm);}
+  .story-chapter h3{font-size:1.4rem; color:var(--ink); margin-bottom:0.4rem;}
+  .story-chapter p{opacity:0.78; line-height:1.65; font-weight:300;}
+  .story-chapter .tag{
+    font-family:'Space Mono',monospace; font-size:0.68rem; letter-spacing:0.1em;
+    color:var(--teal); text-transform:uppercase; opacity:0.7; margin-bottom:0.5rem; display:block;
+  }
+  @media (max-width:560px){
+    .story-chapter{grid-template-columns:48px 1fr; gap:1rem;}
+    .story-chapter .mark{width:40px; height:40px; font-size:1.05rem;}
+  }
+
+  /* ---------- UNLOCK MOMENT (paper boat) ---------- */
+  .boat-wrap{
+    background:var(--teal);
+    color:var(--cream);
+    text-align:center;
+    padding:5.5rem 1.5rem;
+  }
+  .boat-wrap .eyebrow{color:var(--mango);}
+  .boat-wrap h2{color:var(--cream);}
+  .river{
+    position:relative;
+    height:150px;
+    margin-top:2.5rem;
+    background:repeating-linear-gradient(90deg, rgba(255,248,236,0.08) 0 40px, transparent 40px 80px);
+    border-radius:100px;
+    overflow:hidden;
+  }
+  .boat{
+    position:absolute; top:50%; left:6%;
+    transform:translateY(-50%);
+    font-size:2.4rem;
+    cursor:grab;
+    user-select:none;
+    transition:left 1.4s cubic-bezier(.2,.8,.2,1);
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  }
+  .boat.sailed{left:82%;}
+  .dock{position:absolute; right:4%; top:50%; transform:translateY(-50%); font-size:2rem; opacity:0.5;}
+  .reveal-card{
+    margin-top:2rem;
+    max-width:460px;
+    margin-inline:auto;
+    background:var(--cream);
+    color:var(--ink);
+    border-radius:18px;
+    padding:1.8rem;
+    opacity:0;
+    max-height:0;
+    overflow:hidden;
+    transition:opacity 0.6s ease;
+  }
+  .reveal-card.show{opacity:1; max-height:400px; padding:1.8rem;}
+  .reveal-card h3{color:var(--teal); font-size:1.3rem; margin-bottom:0.4rem;}
+  .reveal-card p{font-weight:300; line-height:1.6; opacity:0.85;}
+  .btn{
+    display:inline-block;
+    margin-top:1rem;
+    background:var(--mango);
+    color:var(--teal-deep);
+    font-family:'Space Mono',monospace;
+    font-weight:700;
+    font-size:0.8rem;
+    letter-spacing:0.06em;
+    text-decoration:none;
+    padding:0.75rem 1.4rem;
+    border-radius:100px;
+    border:none;
+    cursor:pointer;
+    transition:transform 0.2s ease;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn.ghost{
+    background:transparent;
+    color:var(--cream);
+    border:1.5px solid rgba(255,248,236,0.5);
+  }
+  .helper-note{
+    font-family:'Space Mono',monospace;
+    font-size:0.68rem;
+    opacity:0.5;
+    margin-top:0.8rem;
+  }
+
+  /* ---------- DETAILS ---------- */
+  .details-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1.5rem;
+    margin-top:2rem;
+  }
+  .detail-card{
+    background:#fff;
+    border:1px solid rgba(11,79,74,0.12);
+    border-radius:16px;
+    padding:1.6rem;
+  }
+  .detail-card .tag{font-family:'Space Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; color:var(--pink); text-transform:uppercase;}
+  .detail-card h3{font-size:1.15rem; margin:0.4rem 0 0.3rem; color:var(--teal);}
+  .detail-card p{font-size:0.9rem; opacity:0.75; font-weight:300;}
+  @media (max-width:600px){.details-grid{grid-template-columns:1fr;}}
+
+  /* ---------- PHOTO WALL ---------- */
+  .wall-block{background:#FFF2DE;}
+  .upload-zone{
+    margin-top:1.8rem;
+    border:2px dashed rgba(11,79,74,0.3);
+    border-radius:18px;
+    padding:2rem;
+    text-align:center;
+    background:rgba(255,255,255,0.5);
+  }
+  .upload-zone input[type=text]{
+    font-family:'Poppins'; font-size:0.9rem;
+    padding:0.6rem 0.9rem; border-radius:10px;
+    border:1px solid rgba(11,79,74,0.25);
+    width:100%; max-width:280px; margin:0.5rem auto;
+    display:block;
+  }
+  #fileInput{display:none;}
+  .pick-btn{
+    display:inline-block; margin-top:0.8rem;
+    background:var(--teal); color:var(--cream);
+    font-family:'Space Mono'; font-size:0.78rem; letter-spacing:0.05em;
+    padding:0.7rem 1.3rem; border-radius:100px; cursor:pointer;
+  }
+  .gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
+    gap:0.8rem;
+    margin-top:2rem;
+  }
+  .gallery img{
+    width:100%; height:140px; object-fit:cover;
+    border-radius:12px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.12);
+  }
+  .gcaption{
+    font-family:'Space Mono'; font-size:0.62rem; opacity:0.6; margin-top:0.3rem;
+  }
+  .gallery-empty{
+    font-family:'Space Mono'; font-size:0.78rem; opacity:0.5; margin-top:1.5rem; text-align:center;
+  }
+
+  /* ---------- REGISTRY ---------- */
+  .registry-block{text-align:center;}
+  .registry-cats{
+    display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:2rem;
+  }
+  .rcat{
+    background:#fff; border:1px solid rgba(11,79,74,0.12);
+    border-radius:16px; padding:1.6rem 1.8rem; min-width:150px;
+  }
+  .rcat .emoji{font-size:1.8rem;}
+  .rcat h4{font-family:'Baloo 2'; color:var(--teal); margin-top:0.5rem; font-size:1rem;}
+
+  footer{
+    text-align:center; padding:3rem 1.5rem;
+    font-family:'Space Mono',monospace; font-size:0.7rem;
+    opacity:0.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <canvas id="rippleCanvas"></canvas>
+  <div class="hero-content">
+    <span class="eyebrow">Save the date</span>
+    <h1 class="names"><span>Bhagya</span><span class="amp">&</span><span>Sujith</span></h1>
+    <p class="hero-sub">Are getting married on the water — Kumarakom, Kerala</p>
+    <p class="tap-hint">tap the water ✦</p>
+  </div>
+  <div class="scrolldown">SCROLL ↓</div>
+</section>
+
+<!-- COUNTDOWN -->
+<div class="countdown" id="countdown">
+  <div class="unit"><span class="num" id="cd-days">--</span><span class="lab">Days</span></div>
+  <div class="unit"><span class="num" id="cd-hours">--</span><span class="lab">Hours</span></div>
+  <div class="unit"><span class="num" id="cd-mins">--</span><span class="lab">Mins</span></div>
+  <div class="unit"><span class="num" id="cd-secs">--</span><span class="lab">Secs</span></div>
+</div>
+
+<!-- STORY -->
+<section class="block" id="story">
+  <span class="eyebrow">Chapter one</span>
+  <h2>How we got here</h2>
+  <p class="lead">The real version of this story is still being written by us — this is the placeholder shape of it. Ask Sujith to swap this for the actual thing (the messy, funny, real one).</p>
+
+  <div class="story-chapter">
+    <div class="mark">01</div>
+    <div>
+      <span class="tag">The start</span>
+      <h3>Where it began</h3>
+      <p>[Placeholder — how Bhagya and Sujith actually met. First impressions, the setting, the small detail neither of them forgot.]</p>
+    </div>
+  </div>
+  <div class="story-chapter">
+    <div class="mark">02</div>
+    <div>
+      <span class="tag">The moment</span>
+      <h3>The one that decided it</h3>
+      <p>[Placeholder — the moment one of them knew. A trip, a bad joke, a terrible restaurant, whatever it was.]</p>
+    </div>
+  </div>
+  <div class="story-chapter">
+    <div class="mark">03</div>
+    <div>
+      <span class="tag">The proposal</span>
+      <h3>Down by the water</h3>
+      <p>[Placeholder — the proposal story. Fits nicely with the backwater theme if it actually happened near water — if not, we'll write around it.]</p>
+    </div>
+  </div>
+  <div class="story-chapter">
+    <div class="mark">04</div>
+    <div>
+      <span class="tag">Now</span>
+      <h3>April 10th, 2027</h3>
+      <p>And now, everyone who matters to them is invited to watch it happen — on the backwaters of Kumarakom, where the water never sits still. Fitting, really.</p>
+    </div>
+  </div>
+</section>
+
+<!-- UNLOCK MOMENT -->
+<section class="boat-wrap">
+  <span class="eyebrow">One more thing</span>
+  <h2>Send the boat, get the details</h2>
+  <p style="opacity:0.75; max-width:480px; margin:0.6rem auto 0; font-weight:300;">Drag the little boat across the water to unlock the venue and schedule.</p>
+  <div class="river">
+    <div class="boat" id="boat" tabindex="0" role="button" aria-label="Drag or press enter to send the boat across">🛶</div>
+    <div class="dock">🏝️</div>
+  </div>
+  <div class="reveal-card" id="revealCard">
+    <h3>Backwater Ripples, Kumarakom</h3>
+    <p>Ceremony begins 4:30 PM · Reception to follow by the water's edge. Full schedule and directions below.</p>
+    <a class="btn" href="#details">See full details ↓</a>
+  </div>
+  <p class="helper-note" id="boatHint">psst — drag it, or tap it and press Enter</p>
+</section>
+
+<!-- DETAILS -->
+<section class="block" id="details">
+  <span class="eyebrow">The essentials</span>
+  <h2>When & where</h2>
+  <div class="details-grid">
+    <div class="detail-card">
+      <span class="tag">Date</span>
+      <h3>April 10, 2027</h3>
+      <p>Saturday. Ceremony at 4:30 PM, reception straight after.</p>
+    </div>
+    <div class="detail-card">
+      <span class="tag">Venue</span>
+      <h3>Backwater Ripples</h3>
+      <p>Kumarakom, Kerala, India — right on the backwaters.</p>
+    </div>
+    <div class="detail-card">
+      <span class="tag">Dress code</span>
+      <h3>[Placeholder]</h3>
+      <p>Add your dress code here — festive, formal, whatever suits the setting.</p>
+    </div>
+    <div class="detail-card">
+      <span class="tag">Getting there</span>
+      <h3>Travel notes</h3>
+      <p>Nearest airport: Cochin (COK), ~1.5 hrs by road. Houseboat transfer details to follow.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PHOTO WALL -->
+<section class="block wall-block" id="wall">
+  <span class="eyebrow">Live from the wedding</span>
+  <h2>The photo wall</h2>
+  <p class="lead">On the day, scan the invite link and drop your photos here — they'll show up for everyone in real time. No app, no login.</p>
+
+  <div class="upload-zone">
+    <input type="text" id="guestName" placeholder="Your name" maxlength="40">
+    <input type="text" id="caption" placeholder="Caption (optional)" maxlength="80">
+    <label class="pick-btn" for="fileInput">Choose a photo</label>
+    <input type="file" id="fileInput" accept="image/*">
+    <p class="helper-note" id="uploadStatus">Shared with everyone viewing this page.</p>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+  <p class="gallery-empty" id="galleryEmpty">No photos yet — be the first ✦</p>
+</section>
+
+<!-- REGISTRY -->
+<section class="block registry-block">
+  <span class="eyebrow">If you're asking</span>
+  <h2>Registry</h2>
+  <p class="lead" style="margin-inline:auto;">Your presence is the actual gift. If you insist on more, here's where to look — link to be added.</p>
+  <div class="registry-cats">
+    <div class="rcat"><div class="emoji">🏡</div><h4>Home</h4></div>
+    <div class="rcat"><div class="emoji">✈️</div><h4>Honeymoon fund</h4></div>
+    <div class="rcat"><div class="emoji">🎁</div><h4>Surprise us</h4></div>
+  </div>
+  <a class="btn" href="#" id="registryLink" style="margin-top:2rem;">Open registry ↗</a>
+</section>
+
+<footer>BHAGYA &amp; SUJITH · 10.04.2027 · KUMARAKOM</footer>
+
+<script>
+/* ---------------- RIPPLE HERO ---------------- */
+const canvas = document.getElementById('rippleCanvas');
+const ctx = canvas.getContext('2d');
+let ripples = [];
+function resize(){ canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+window.addEventListener('resize', resize); resize();
+
+function spawnRipple(x,y,big){
+  ripples.push({x,y,r:0,max: big? 420: 220, alpha:0.55, big});
+}
+canvas.addEventListener('pointerdown', e=>{
+  const rect = canvas.getBoundingClientRect();
+  spawnRipple(e.clientX-rect.left, e.clientY-rect.top, false);
+});
+
+// ambient auto ripple + initial big one
+spawnRipple(canvas.offsetWidth/2, canvas.offsetHeight/2, true);
+setInterval(()=>{
+  if(Math.random()<0.5){
+    spawnRipple(Math.random()*canvas.offsetWidth, Math.random()*canvas.offsetHeight, false);
+  }
+}, 2600);
+
+function drawRipples(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ripples.forEach(rp=>{
+    rp.r += rp.big ? 2.6 : 3.2;
+    rp.alpha -= rp.big ? 0.0035 : 0.008;
+    ctx.beginPath();
+    ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(255,248,236,${Math.max(rp.alpha,0)})`;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  });
+  ripples = ripples.filter(rp=> rp.alpha > 0 && rp.r < rp.max);
+  requestAnimationFrame(drawRipples);
+}
+drawRipples();
+
+/* ---------------- COUNTDOWN ---------------- */
+const weddingDate = new Date('2027-04-10T16:30:00+05:30').getTime();
+function tickCountdown(){
+  const now = Date.now();
+  const diff = Math.max(weddingDate - now, 0);
+  const d = Math.floor(diff/(1000*60*60*24));
+  const h = Math.floor((diff/(1000*60*60))%24);
+  const m = Math.floor((diff/(1000*60))%60);
+  const s = Math.floor((diff/1000)%60);
+  document.getElementById('cd-days').textContent = d;
+  document.getElementById('cd-hours').textContent = String(h).padStart(2,'0');
+  document.getElementById('cd-mins').textContent = String(m).padStart(2,'0');
+  document.getElementById('cd-secs').textContent = String(s).padStart(2,'0');
+}
+tickCountdown(); setInterval(tickCountdown, 1000);
+
+/* ---------------- STORY REVEAL ON SCROLL ---------------- */
+const chapters = document.querySelectorAll('.story-chapter');
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold:0.25});
+chapters.forEach(c=>io.observe(c));
+
+/* ---------------- BOAT DRAG / UNLOCK ---------------- */
+const boat = document.getElementById('boat');
+const revealCard = document.getElementById('revealCard');
+const boatHint = document.getElementById('boatHint');
+let sailed = false;
+
+function sailBoat(){
+  if(sailed) return;
+  sailed = true;
+  boat.classList.add('sailed');
+  boatHint.style.display='none';
+  setTimeout(()=> revealCard.classList.add('show'), 700);
+}
+
+let dragging = false;
+boat.addEventListener('pointerdown', ()=>{ dragging = true; });
+window.addEventListener('pointerup', ()=>{ dragging = false; });
+window.addEventListener('pointermove', e=>{
+  if(!dragging || sailed) return;
+  const river = boat.parentElement.getBoundingClientRect();
+  const pct = (e.clientX - river.left) / river.width;
+  if(pct > 0.68) sailBoat();
+});
+boat.addEventListener('keydown', e=>{
+  if(e.key === 'Enter' || e.key === ' ') sailBoat();
+});
+boat.addEventListener('click', ()=>{
+  // small tap-to-nudge fallback for touch devices without real drag
+  if(!sailed) sailBoat();
+});
+
+/* ---------------- PHOTO WALL (persistent, shared) ---------------- */
+const gallery = document.getElementById('gallery');
+const galleryEmpty = document.getElementById('galleryEmpty');
+const fileInput = document.getElementById('fileInput');
+const uploadStatus = document.getElementById('uploadStatus');
+
+async function loadGallery(){
+  try{
+    const res = await window.storage.get('gallery', true);
+    const items = res && res.value ? JSON.parse(res.value) : [];
+    renderGallery(items);
+  }catch(err){
+    renderGallery([]);
+  }
+}
+
+function renderGallery(items){
+  gallery.innerHTML = '';
+  if(!items.length){ galleryEmpty.style.display='block'; return; }
+  galleryEmpty.style.display='none';
+  items.slice().reverse().forEach(item=>{
+    const fig = document.createElement('figure');
+    const img = document.createElement('img');
+    img.src = item.dataUrl;
+    img.alt = item.caption || ('Photo from ' + (item.guestName || 'a guest'));
+    const cap = document.createElement('div');
+    cap.className = 'gcaption';
+    cap.textContent = (item.guestName ? item.guestName : 'Guest') + (item.caption ? ' — ' + item.caption : '');
+    fig.appendChild(img); fig.appendChild(cap);
+    gallery.appendChild(fig);
+  });
+}
+
+function resizeImage(file, maxW=900, quality=0.6){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = ()=>{
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas');
+      c.width = img.width*scale; c.height = img.height*scale;
+      const cx = c.getContext('2d');
+      cx.drawImage(img,0,0,c.width,c.height);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+fileInput.addEventListener('change', async ()=>{
+  const file = fileInput.files[0];
+  if(!file) return;
+  uploadStatus.textContent = 'Uploading…';
+  try{
+    const dataUrl = await resizeImage(file);
+    const guestName = document.getElementById('guestName').value.trim();
+    const caption = document.getElementById('caption').value.trim();
+    let items = [];
+    try{
+      const res = await window.storage.get('gallery', true);
+      items = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){ items = []; }
+    items.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2), guestName, caption, dataUrl });
+    // keep the gallery from growing unbounded
+    if(items.length > 60) items = items.slice(items.length-60);
+    await window.storage.set('gallery', JSON.stringify(items), true);
+    renderGallery(items);
+    uploadStatus.textContent = 'Added! Shared with everyone viewing this page.';
+    fileInput.value = '';
+  }catch(err){
+    uploadStatus.textContent = 'Something went wrong — try a smaller photo.';
+  }
+});
+
+loadGallery();
+</script>
+</body>
+</html>
