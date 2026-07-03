@@ -346,38 +346,38 @@
 <section class="block" id="story">
   <span class="eyebrow">Chapter one</span>
   <h2>How we got here</h2>
-  <p class="lead">The real version of this story is still being written by us — this is the placeholder shape of it. Ask Sujith to swap this for the actual thing (the messy, funny, real one).</p>
+  <p class="lead">Two BBA students, one campus, zero warning signs. Here's how it actually happened.</p>
 
   <div class="story-chapter">
     <div class="mark">01</div>
     <div>
       <span class="tag">The start</span>
-      <h3>Where it began</h3>
-      <p>[Placeholder — how Bhagya and Sujith actually met. First impressions, the setting, the small detail neither of them forgot.]</p>
+      <h3>Rajagiri College, BBA batch</h3>
+      <p>They met in college — same course, same classrooms, no grand entrance. Just two people who somehow became friends almost immediately, for no reason either of them can fully explain.</p>
     </div>
   </div>
   <div class="story-chapter">
     <div class="mark">02</div>
     <div>
       <span class="tag">The moment</span>
-      <h3>The one that decided it</h3>
-      <p>[Placeholder — the moment one of them knew. A trip, a bad joke, a terrible restaurant, whatever it was.]</p>
+      <h3>Best friends, against their will</h3>
+      <p>Friends turned into best friends fast — the kind of fast that made everyone around them suspicious. One is tall, one is short, both are stubborn, and somehow it worked. Every single person who knew them said the same thing: <em>"you two are going to end up together."</em> They denied it for years. Everyone else was right.</p>
     </div>
   </div>
   <div class="story-chapter">
     <div class="mark">03</div>
     <div>
       <span class="tag">The proposal</span>
-      <h3>Down by the water</h3>
-      <p>[Placeholder — the proposal story. Fits nicely with the backwater theme if it actually happened near water — if not, we'll write around it.]</p>
+      <h3>That part's staying between them</h3>
+      <p>Some chapters are just for the two of them. All anyone needs to know is that it happened, she said yes, and now there's a wedding to prove it.</p>
     </div>
   </div>
   <div class="story-chapter">
     <div class="mark">04</div>
     <div>
       <span class="tag">Now</span>
-      <h3>April 10th, 2027</h3>
-      <p>And now, everyone who matters to them is invited to watch it happen — on the backwaters of Kumarakom, where the water never sits still. Fitting, really.</p>
+      <h3>Still just best friends, apparently</h3>
+      <p>Years later, people still tease them for acting more like best friends than a couple — which, honestly, is probably the whole point. On April 10th, 2027, on the backwaters of Kumarakom, the friendship officially becomes permanent.</p>
     </div>
   </div>
 </section>
@@ -461,44 +461,130 @@
 <footer>BHAGYA &amp; SUJITH · 10.04.2027 · KUMARAKOM</footer>
 
 <script>
-/* ---------------- RIPPLE HERO ---------------- */
+/* ---------------- REAL WATER SIMULATION ---------------- */
 const canvas = document.getElementById('rippleCanvas');
 const ctx = canvas.getContext('2d');
-let ripples = [];
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 function resize(){ canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
 window.addEventListener('resize', resize); resize();
 
-function spawnRipple(x,y,big){
-  ripples.push({x,y,r:0,max: big? 420: 220, alpha:0.55, big});
+// Logical simulation grid (coarse — upscaled to the real canvas for speed)
+const RES_W = 150, RES_H = 84;
+const N = RES_W * RES_H;
+let bufA = new Float32Array(N); // current height
+let bufB = new Float32Array(N); // previous height
+let bufC = new Float32Array(N); // scratch (next)
+const DAMPING = 0.985;
+
+const offCanvas = document.createElement('canvas');
+offCanvas.width = RES_W; offCanvas.height = RES_H;
+const offCtx = offCanvas.getContext('2d');
+const imgData = offCtx.createImageData(RES_W, RES_H);
+
+// base water colour (matches --teal / --teal-deep)
+const BASE = [11, 79, 74];
+
+function splash(gx, gy, strength, radius){
+  for(let dy=-radius; dy<=radius; dy++){
+    for(let dx=-radius; dx<=radius; dx++){
+      const x = gx+dx, y = gy+dy;
+      if(x<1 || x>=RES_W-1 || y<1 || y>=RES_H-1) continue;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist > radius) continue;
+      const falloff = 1 - dist/radius;
+      bufA[y*RES_W + x] += strength * falloff;
+    }
+  }
 }
-canvas.addEventListener('pointerdown', e=>{
+
+function stepWater(){
+  for(let y=1; y<RES_H-1; y++){
+    const row = y*RES_W;
+    for(let x=1; x<RES_W-1; x++){
+      const i = row+x;
+      bufC[i] = (bufA[i-1] + bufA[i+1] + bufA[i-RES_W] + bufA[i+RES_W]) * 0.5 - bufB[i];
+      bufC[i] *= DAMPING;
+    }
+  }
+  const tmp = bufB; bufB = bufA; bufA = bufC; bufC = tmp;
+}
+
+const LIGHT_X = 0.72, LIGHT_Y = 0.62; // simulated sunlight direction, top-left
+
+function renderWater(){
+  const data = imgData.data;
+  for(let y=0; y<RES_H; y++){
+    const row = y*RES_W;
+    for(let x=0; x<RES_W; x++){
+      const i = row+x;
+      let shade = 0;
+      if(x>0 && x<RES_W-1 && y>0 && y<RES_H-1){
+        const dx = bufA[i+1] - bufA[i-1];
+        const dy = bufA[i+RES_W] - bufA[i-RES_W];
+        shade = (dx*LIGHT_X + dy*LIGHT_Y) * 5.5;
+      }
+      const depth = bufA[i] * 0.6;
+      const p = i*4;
+      data[p]   = Math.max(0, Math.min(255, BASE[0] + shade*0.8 + depth));
+      data[p+1] = Math.max(0, Math.min(255, BASE[1] + shade + depth*1.1));
+      data[p+2] = Math.max(0, Math.min(255, BASE[2] + shade*1.3 + depth*1.2));
+      data[p+3] = 255;
+    }
+  }
+  offCtx.putImageData(imgData, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(offCanvas, 0, 0, RES_W, RES_H, 0, 0, canvas.width, canvas.height);
+
+  // soft vignette so text stays readable
+  const vg = ctx.createRadialGradient(canvas.width/2, canvas.height*0.4, canvas.width*0.15, canvas.width/2, canvas.height*0.4, canvas.width*0.75);
+  vg.addColorStop(0, 'rgba(8,60,56,0)');
+  vg.addColorStop(1, 'rgba(6,40,37,0.45)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function toGrid(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
-  spawnRipple(e.clientX-rect.left, e.clientY-rect.top, false);
+  const x = clientX - rect.left, y = clientY - rect.top;
+  return { gx: Math.floor((x/rect.width) * RES_W), gy: Math.floor((y/rect.height) * RES_H) };
+}
+
+canvas.addEventListener('pointerdown', e=>{
+  const {gx,gy} = toGrid(e.clientX, e.clientY);
+  splash(gx, gy, 26, 5);
+});
+let dragging = false;
+canvas.addEventListener('pointerdown', ()=> dragging = true);
+window.addEventListener('pointerup', ()=> dragging = false);
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const {gx,gy} = toGrid(e.clientX, e.clientY);
+  splash(gx, gy, 8, 3);
 });
 
-// ambient auto ripple + initial big one
-spawnRipple(canvas.offsetWidth/2, canvas.offsetHeight/2, true);
+// gentle ambient droplets so the water is never fully still
 setInterval(()=>{
-  if(Math.random()<0.5){
-    spawnRipple(Math.random()*canvas.offsetWidth, Math.random()*canvas.offsetHeight, false);
-  }
-}, 2600);
+  if(reducedMotion) return;
+  const gx = 4 + Math.random()*(RES_W-8);
+  const gy = 4 + Math.random()*(RES_H-8);
+  splash(gx, gy, 9, 3);
+}, 1800);
 
-function drawRipples(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ripples.forEach(rp=>{
-    rp.r += rp.big ? 2.6 : 3.2;
-    rp.alpha -= rp.big ? 0.0035 : 0.008;
-    ctx.beginPath();
-    ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(255,248,236,${Math.max(rp.alpha,0)})`;
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-  });
-  ripples = ripples.filter(rp=> rp.alpha > 0 && rp.r < rp.max);
-  requestAnimationFrame(drawRipples);
+// initial splash so it isn't a flat sheet on load
+splash(RES_W/2, RES_H/2, 30, 7);
+
+function loop(){
+  stepWater();
+  renderWater();
+  if(!reducedMotion) requestAnimationFrame(loop);
 }
-drawRipples();
+if(reducedMotion){
+  renderWater(); // draw one static frame, skip the animation loop entirely
+} else {
+  loop();
+}
 
 /* ---------------- COUNTDOWN ---------------- */
 const weddingDate = new Date('2027-04-10T16:30:00+05:30').getTime();
@@ -537,11 +623,11 @@ function sailBoat(){
   setTimeout(()=> revealCard.classList.add('show'), 700);
 }
 
-let dragging = false;
-boat.addEventListener('pointerdown', ()=>{ dragging = true; });
-window.addEventListener('pointerup', ()=>{ dragging = false; });
+let boatDragging = false;
+boat.addEventListener('pointerdown', ()=>{ boatDragging = true; });
+window.addEventListener('pointerup', ()=>{ boatDragging = false; });
 window.addEventListener('pointermove', e=>{
-  if(!dragging || sailed) return;
+  if(!boatDragging || sailed) return;
   const river = boat.parentElement.getBoundingClientRect();
   const pct = (e.clientX - river.left) / river.width;
   if(pct > 0.68) sailBoat();
