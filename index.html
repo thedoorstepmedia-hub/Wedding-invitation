@@ -61,6 +61,18 @@
     z-index:2;
     pointer-events:none;
   }
+  .hero-boat{
+    position:absolute;
+    z-index:1;
+    left:12%;
+    top:62%;
+    pointer-events:none;
+    filter:drop-shadow(0 10px 10px rgba(0,0,0,0.35));
+    will-change:transform;
+  }
+  @media (max-width:560px){
+    .hero-boat svg{width:62px; height:134px;}
+  }
   .hero-content .eyebrow{color:var(--mango); margin-bottom:0.9rem;}
   .names{
     font-size:clamp(2.6rem, 10vw, 6.2rem);
@@ -325,6 +337,35 @@
 <!-- HERO -->
 <section class="hero" id="hero">
   <canvas id="rippleCanvas"></canvas>
+  <div class="hero-boat" id="heroBoat" aria-hidden="true">
+    <svg viewBox="0 0 120 260" width="84" height="182" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- hull: long canoe seen from above -->
+      <path d="M60 8 C88 50 92 90 92 130 C92 170 88 210 60 252 C32 210 28 170 28 130 C28 90 32 50 60 8 Z"
+            fill="#7A4A2B" stroke="#FFF8EC" stroke-width="3"/>
+      <!-- inner deck -->
+      <path d="M60 24 C80 58 83 92 83 130 C83 168 80 202 60 236 C40 202 37 168 37 130 C37 92 40 58 60 24 Z"
+            fill="#9C6239"/>
+      <!-- bench slats -->
+      <line x1="40" y1="70" x2="80" y2="70" stroke="#7A4A2B" stroke-width="4" stroke-linecap="round"/>
+      <line x1="38" y1="130" x2="82" y2="130" stroke="#7A4A2B" stroke-width="4" stroke-linecap="round"/>
+      <line x1="40" y1="190" x2="80" y2="190" stroke="#7A4A2B" stroke-width="4" stroke-linecap="round"/>
+      <!-- him: taller, broader shoulders, paddling (rear seat) -->
+      <ellipse cx="60" cy="176" rx="17" ry="12" fill="#FF7A33"/>
+      <circle cx="60" cy="172" r="9.5" fill="#3B2A20"/>
+      <!-- his paddle reaching over the side -->
+      <line x1="74" y1="170" x2="104" y2="152" stroke="#FFF8EC" stroke-width="3.5" stroke-linecap="round"/>
+      <ellipse cx="108" cy="149" rx="6" ry="10" fill="#FFF8EC" transform="rotate(30 108 149)"/>
+      <!-- her: smaller, front-middle seat -->
+      <ellipse cx="60" cy="108" rx="14" ry="10" fill="#FF5C8A"/>
+      <circle cx="60" cy="104" r="8" fill="#2A1B14"/>
+      <!-- small white maltese at the bow, looking forward -->
+      <ellipse cx="60" cy="48" rx="8" ry="11" fill="#FFFFFF"/>
+      <circle cx="60" cy="38" r="5.5" fill="#FFFFFF"/>
+      <circle cx="56.5" cy="34" r="2.2" fill="#FFFFFF"/>
+      <circle cx="63.5" cy="34" r="2.2" fill="#FFFFFF"/>
+      <circle cx="60" cy="61" r="3" fill="#FFFFFF"/>
+    </svg>
+  </div>
   <div class="hero-content">
     <span class="eyebrow">Save the date</span>
     <h1 class="names"><span>Bhagya</span><span class="amp">&</span><span>Sujith</span></h1>
@@ -575,9 +616,65 @@ setInterval(()=>{
 // initial splash so it isn't a flat sheet on load
 splash(RES_W/2, RES_H/2, 30, 7);
 
+/* ---- HERO BOAT: rides the simulated water ---- */
+const heroBoat = document.getElementById('heroBoat');
+// boat position in grid coordinates
+let boatX = RES_W * 0.28, boatY = RES_H * 0.66;
+let boatVX = 0, boatVY = 0;
+let boatHeading = 0;
+
+function sampleHeight(gx, gy){
+  const x = Math.max(1, Math.min(RES_W-2, Math.floor(gx)));
+  const y = Math.max(1, Math.min(RES_H-2, Math.floor(gy)));
+  return bufA[y*RES_W + x];
+}
+
+function updateBoat(){
+  if(!heroBoat) return;
+  // local water slope pushes the boat like a real wave would
+  const hL = sampleHeight(boatX-2, boatY);
+  const hR = sampleHeight(boatX+2, boatY);
+  const hU = sampleHeight(boatX, boatY-2);
+  const hD = sampleHeight(boatX, boatY+2);
+  boatVX += (hL - hR) * 0.0035;
+  boatVY += (hU - hD) * 0.0035;
+  // gentle current drifting it back toward home
+  boatVX += (RES_W*0.28 - boatX) * 0.0004;
+  boatVY += (RES_H*0.66 - boatY) * 0.0004;
+  boatVX *= 0.96; boatVY *= 0.96;
+  boatX += boatVX; boatY += boatVY;
+  boatX = Math.max(6, Math.min(RES_W-6, boatX));
+  boatY = Math.max(RES_H*0.35, Math.min(RES_H-6, boatY));
+
+  // leave a real wake in the water when moving
+  if(Math.sqrt(boatVX*boatVX + boatVY*boatVY) > 0.05 && Math.random() < 0.4){
+    splash(boatX, boatY, 3, 2);
+  }
+
+  // overhead view: rotate toward drift direction, lift = subtle scale-up
+  const h = sampleHeight(boatX, boatY);
+  const drift = Math.sqrt(boatVX*boatVX + boatVY*boatVY);
+  let heading = boatHeading;
+  if(drift > 0.01){
+    const target = Math.atan2(boatVY, boatVX) * 180/Math.PI + 90;
+    // ease toward the new heading so it turns like a boat, not a compass needle
+    let delta = ((target - boatHeading + 540) % 360) - 180;
+    heading = boatHeading + delta * 0.06;
+  }
+  boatHeading = heading;
+  const lift = 1 + Math.max(-0.5, Math.min(0.5, h)) * 0.006;
+  const wobble = (hR - hL) * 0.25;
+  const px = (boatX / RES_W) * canvas.width;
+  const py = (boatY / RES_H) * canvas.height;
+  heroBoat.style.transform =
+    `translate(${px - canvas.width*0.12}px, ${py - canvas.height*0.62}px) ` +
+    `rotate(${heading + Math.max(-6, Math.min(6, wobble))}deg) scale(${lift})`;
+}
+
 function loop(){
   stepWater();
   renderWater();
+  updateBoat();
   if(!reducedMotion) requestAnimationFrame(loop);
 }
 if(reducedMotion){
