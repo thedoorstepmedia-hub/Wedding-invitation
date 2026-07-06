@@ -116,6 +116,16 @@
     z-index:2; font-family:'Space Mono',monospace; font-size:0.7rem;
     letter-spacing:0.15em; color:var(--cream); opacity:0.6;
   }
+  .sound-btn{
+    position:absolute; bottom:1.4rem; right:1.4rem; z-index:3;
+    width:46px; height:46px; border-radius:50%;
+    background:rgba(255,248,236,0.12);
+    border:1.5px solid rgba(255,248,236,0.35);
+    font-size:1.15rem; cursor:pointer;
+    backdrop-filter:blur(4px);
+    transition:background 0.3s ease;
+  }
+  .sound-btn:hover{background:rgba(255,248,236,0.22);}
 
   /* ---------- COUNTDOWN STRIP ---------- */
   .countdown{
@@ -288,15 +298,16 @@
     overflow:hidden;
   }
   .boat{
-    position:absolute; top:50%; left:6%;
-    transform:translateY(-50%);
+    position:absolute; top:50%; left:0;
+    transform:translate(6vw,-50%);
     font-size:2.4rem;
     cursor:grab;
     user-select:none;
-    transition:left 1.4s cubic-bezier(.2,.8,.2,1);
+    touch-action:none;
+    will-change:transform;
     filter:drop-shadow(0 4px 6px rgba(0,0,0,0.3));
   }
-  .boat.sailed{left:82%;}
+  .boat.grabbing{cursor:grabbing;}
   .dock{position:absolute; right:4%; top:50%; transform:translateY(-50%); font-size:2rem; opacity:0.5;}
   .reveal-card{
     margin-top:2rem;
@@ -306,12 +317,10 @@
     color:var(--ink);
     border-radius:18px;
     padding:1.8rem;
-    opacity:0;
-    max-height:0;
-    overflow:hidden;
-    transition:opacity 0.6s ease;
+    clip-path:inset(0 100% 0 0 round 18px);
+    opacity:0.35;
+    will-change:clip-path;
   }
-  .reveal-card.show{opacity:1; max-height:400px; padding:1.8rem;}
   .reveal-card h3{color:var(--teal); font-size:1.3rem; margin-bottom:0.4rem;}
   .reveal-card p{font-weight:300; line-height:1.6; opacity:0.85;}
   .btn{
@@ -497,6 +506,7 @@
     <p class="tap-hint">tap the water ✦</p>
   </div>
   <div class="scrolldown">SCROLL ↓</div>
+  <button id="soundBtn" class="sound-btn" aria-label="Toggle water sounds" aria-pressed="false">🔇</button>
 </section>
 
 <!-- COUNTDOWN -->
@@ -698,12 +708,12 @@
 <section class="boat-wrap">
   <span class="eyebrow">One more thing</span>
   <h2>Send the boat, get the details</h2>
-  <p style="opacity:0.75; max-width:480px; margin:0.6rem auto 0; font-weight:300;">Drag the little boat across the water to unlock the venue and schedule.</p>
+  <p style="opacity:0.75; max-width:480px; margin:0.6rem auto 0; font-weight:300;">Drag the little boat across the water. The further it sails, the more it reveals.</p>
   <div class="river">
-    <div class="boat" id="boat" tabindex="0" role="button" aria-label="Drag or press enter to send the boat across">🛶</div>
+    <div class="boat" id="boat" tabindex="0" role="button" aria-label="Drag right to reveal the venue details, drag left to hide them. Press enter to toggle.">🛶</div>
     <div class="dock">🏝️</div>
   </div>
-  <div class="reveal-card" id="revealCard">
+  <div class="reveal-card" id="revealCard" aria-live="polite">
     <h3>Backwater Ripples, Kumarakom</h3>
     <p>Ceremony begins 4:30 PM · Reception to follow by the water's edge. Full schedule and directions below.</p>
     <a class="btn" href="#details">See full details ↓</a>
@@ -866,6 +876,7 @@ function toGrid(clientX, clientY){
 canvas.addEventListener('pointerdown', e=>{
   const {gx,gy} = toGrid(e.clientX, e.clientY);
   splash(gx, gy, 26, 5);
+  playPlop();
 });
 let dragging = false;
 canvas.addEventListener('pointerdown', ()=> dragging = true);
@@ -1008,36 +1019,139 @@ const io = new IntersectionObserver(entries=>{
 }, {threshold:0.12});
 chapters.forEach(c=>io.observe(c));
 
-/* ---------------- BOAT DRAG / UNLOCK ---------------- */
+/* ---------------- BOAT DRAG: curtain reveal ---------------- */
 const boat = document.getElementById('boat');
+const river = boat.parentElement;
 const revealCard = document.getElementById('revealCard');
 const boatHint = document.getElementById('boatHint');
-let sailed = false;
 
-function sailBoat(){
-  if(sailed) return;
-  sailed = true;
-  boat.classList.add('sailed');
-  boatHint.style.display='none';
-  setTimeout(()=> revealCard.classList.add('show'), 700);
+let progress = 0;          // 0 = docked left, 1 = fully sailed
+let displayed = 0;         // smoothed progress actually rendered
+let boatDragging = false;
+let snapTarget = null;     // animate toward 0 or 1 when released
+let grabOffset = 0;
+
+function applyProgress(){
+  const rw = river.getBoundingClientRect().width;
+  const travel = rw * 0.76;
+  const x = rw * 0.06 + displayed * travel;
+  boat.style.transform = `translate(${x}px, -50%) rotate(${Math.sin(displayed*9)*4}deg)`;
+  // curtain wipe follows the boat exactly, both directions
+  const wipe = Math.max(0, Math.min(1, displayed / 0.85));
+  revealCard.style.clipPath = `inset(0 ${(1-wipe)*100}% 0 0 round 18px)`;
+  revealCard.style.opacity = 0.35 + wipe * 0.65;
+  if(displayed > 0.1) boatHint.style.opacity = 0;
 }
 
-let boatDragging = false;
-boat.addEventListener('pointerdown', ()=>{ boatDragging = true; });
-window.addEventListener('pointerup', ()=>{ boatDragging = false; });
-window.addEventListener('pointermove', e=>{
-  if(!boatDragging || sailed) return;
-  const river = boat.parentElement.getBoundingClientRect();
-  const pct = (e.clientX - river.left) / river.width;
-  if(pct > 0.68) sailBoat();
+function boatFrame(){
+  if(boatDragging){
+    displayed += (progress - displayed) * 0.35;   // buttery follow
+  } else if(snapTarget !== null){
+    displayed += (snapTarget - displayed) * 0.12; // gentle snap
+    if(Math.abs(snapTarget - displayed) < 0.002){
+      displayed = snapTarget; snapTarget = null;
+    }
+  }
+  applyProgress();
+  requestAnimationFrame(boatFrame);
+}
+boatFrame();
+
+boat.addEventListener('pointerdown', e=>{
+  boatDragging = true;
+  snapTarget = null;
+  boat.classList.add('grabbing');
+  boat.setPointerCapture(e.pointerId);
+  const rect = river.getBoundingClientRect();
+  const travel = rect.width * 0.76;
+  const boatX = rect.width * 0.06 + displayed * travel;
+  grabOffset = (e.clientX - rect.left) - boatX;
+  e.preventDefault();
 });
+boat.addEventListener('pointermove', e=>{
+  if(!boatDragging) return;
+  const rect = river.getBoundingClientRect();
+  const travel = rect.width * 0.76;
+  progress = ((e.clientX - rect.left) - grabOffset - rect.width*0.06) / travel;
+  progress = Math.max(0, Math.min(1, progress));
+});
+function releaseBoat(){
+  if(!boatDragging) return;
+  boatDragging = false;
+  boat.classList.remove('grabbing');
+  snapTarget = displayed > 0.55 ? 1 : 0;
+}
+boat.addEventListener('pointerup', releaseBoat);
+boat.addEventListener('pointercancel', releaseBoat);
+
 boat.addEventListener('keydown', e=>{
-  if(e.key === 'Enter' || e.key === ' ') sailBoat();
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    snapTarget = displayed > 0.5 ? 0 : 1;
+    progress = snapTarget;
+  }
 });
-boat.addEventListener('click', ()=>{
-  // small tap-to-nudge fallback for touch devices without real drag
-  if(!sailed) sailBoat();
-});
+
+/* ---------------- WATER SOUND (generated, no files) ---------------- */
+const soundBtn = document.getElementById('soundBtn');
+let audioCtx = null, ambientGain = null, soundOn = false;
+
+function buildAmbience(){
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // brown-ish noise buffer for gentle lapping
+  const len = audioCtx.sampleRate * 4;
+  const buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let last = 0;
+  for(let i=0;i<len;i++){
+    const white = Math.random()*2-1;
+    last = (last + 0.02*white) / 1.02;
+    data[i] = last * 3.5;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer; src.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 420; filter.Q.value = 0.6;
+  ambientGain = audioCtx.createGain();
+  ambientGain.gain.value = 0;
+  // slow swell so it laps rather than hisses
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = 0.13; lfoGain.gain.value = 0.035;
+  lfo.connect(lfoGain); lfoGain.connect(ambientGain.gain);
+  lfo.start();
+  src.connect(filter); filter.connect(ambientGain);
+  ambientGain.connect(audioCtx.destination);
+  src.start();
+}
+
+function playPlop(){
+  if(!soundOn || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(520 + Math.random()*160, t);
+  osc.frequency.exponentialRampToValueAtTime(130, t + 0.16);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.22, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  osc.connect(g); g.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.3);
+}
+
+if(soundBtn){
+  soundBtn.addEventListener('click', ()=>{
+    if(!audioCtx) buildAmbience();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    soundOn = !soundOn;
+    const target = soundOn ? 0.09 : 0;
+    ambientGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    ambientGain.gain.linearRampToValueAtTime(target, audioCtx.currentTime + 0.8);
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    soundBtn.setAttribute('aria-pressed', soundOn);
+  });
+}
 
 /* ---------------- PHOTO WALL (persistent, shared) ---------------- */
 const gallery = document.getElementById('gallery');
